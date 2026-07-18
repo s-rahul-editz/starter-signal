@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { supabasePublic } from "../../../lib/supabase";
 
+export const dynamic = "force-dynamic";
+
 function fmtDate(dateStr) {
   return new Date(dateStr).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }

@@ -13,7 +13,7 @@ function fmtDate(dateStr) {
 }
 
 export default async function HomePage() {
-  const { data: posts } = await supabasePublic
+  const { data: posts, error } = await supabasePublic
     .from("posts")
     .select("id, title, slug, excerpt, published_at, read_time_minutes, post_tags(tags(name, slug))")
     .eq("status", "published")
@@ -21,6 +21,12 @@ export default async function HomePage() {
 
   return (
     <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>
+      <div style={{ background: "#fff", border: "2px solid red", padding: 12, marginBottom: 20, fontSize: 12, fontFamily: "monospace", whiteSpace: "pre-wrap" }}>
+        DEBUG — server fetched at: {new Date().toISOString()}
+        {"\n"}error: {error ? JSON.stringify(error) : "none"}
+        {"\n"}raw posts: {JSON.stringify(posts, null, 2)}
+      </div>
+
       <div className="eyebrow">Latest</div>
       <h1 style={{ fontSize: 34, margin: "8px 0 8px" }}>Starter Signal</h1>
       <p style={{ color: "var(--ink-soft)", maxWidth: 520 }}>

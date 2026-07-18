@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { supabasePublic } from "../../lib/supabase";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = { title: "Search — Starter Signal" };
 
 function fmtDate(dateStr) {

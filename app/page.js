@@ -17,6 +17,7 @@ export default async function HomePage() {
     .from("posts")
     .select("id, title, slug, excerpt, published_at, read_time_minutes, post_tags(tags(name, slug))")
     .eq("status", "published")
+    .lte("published_at", new Date().toISOString())
     .order("published_at", { ascending: false });
 
   return (
@@ -56,4 +57,4 @@ export default async function HomePage() {
       })}
     </div>
   );
-          }
+}

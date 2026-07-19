@@ -27,7 +27,7 @@ export default async function TagPage({ params }) {
 
     posts = (data || [])
       .map((row) => row.posts)
-      .filter((p) => p && p.status === "published")
+      .filter((p) => p && p.status === "published" && new Date(p.published_at) <= new Date())
       .sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
   }
 
@@ -54,4 +54,4 @@ export default async function TagPage({ params }) {
       ))}
     </div>
   );
-        }
+}

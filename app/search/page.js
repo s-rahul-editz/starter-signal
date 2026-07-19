@@ -18,6 +18,7 @@ export default async function SearchPage({ searchParams }) {
       .from("posts")
       .select("id, title, slug, excerpt, published_at, read_time_minutes")
       .eq("status", "published")
+      .lte("published_at", new Date().toISOString())
       .or(`title.ilike.%${q}%,body.ilike.%${q}%`)
       .order("published_at", { ascending: false });
     posts = data || [];

@@ -1,4 +1,5 @@
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/react";
 
 export const metadata = {
   title: "Starter Signal — Indian Railways, journey by journey",
@@ -13,6 +14,7 @@ export default function RootLayout({ children }) {
           <a href="/" className="wordmark">Starter Signal<span className="dot">.</span></a>
         </header>
         <main>{children}</main>
+        <Analytics />
       </body>
     </html>
   );

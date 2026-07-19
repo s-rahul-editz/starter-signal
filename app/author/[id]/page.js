@@ -24,6 +24,7 @@ export default async function AuthorPage({ params }) {
     .select("id, title, slug, excerpt, published_at, read_time_minutes")
     .eq("author_id", params.id)
     .eq("status", "published")
+    .lte("published_at", new Date().toISOString())
     .order("published_at", { ascending: false });
 
   return (

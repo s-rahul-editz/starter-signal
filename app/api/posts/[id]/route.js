@@ -35,7 +35,7 @@ export async function PUT(request, { params }) {
   }
 
   const body = await request.json();
-  const { title, excerpt, content, featured_image, gallery_images, tags, status } = body;
+  const { title, excerpt, content, featured_image, gallery_images, tags, status, faq, scheduled_at } = body;
 
   if (!title || !content) {
     return NextResponse.json({ error: "Title and body are required" }, { status: 400 });
@@ -43,17 +43,27 @@ export async function PUT(request, { params }) {
 
   const { data: existingPost } = await supabaseAdmin
     .from("posts")
-    .select("published_at")
+    .select("title, body, excerpt, published_at")
     .eq("id", params.id)
     .single();
+
+  // Save a snapshot of the current version before overwriting it (Phase 7: revision history)
+  if (existingPost) {
+    await supabaseAdmin.from("post_revisions").insert({
+      post_id: params.id,
+      title: existingPost.title,
+      body: existingPost.body,
+      excerpt: existingPost.excerpt,
+    });
+  }
 
   const wordCount = content.trim().split(/\s+/).length;
   const readTime = Math.max(1, Math.round(wordCount / 200));
 
   const publishedAt =
-    status === "published" && !existingPost?.published_at
-      ? new Date().toISOString()
-      : existingPost?.published_at || null;
+    status === "published"
+      ? (scheduled_at || existingPost?.published_at || new Date().toISOString())
+      : null;
 
   const { data: post, error: postError } = await supabaseAdmin
     .from("posts")
@@ -66,6 +76,7 @@ export async function PUT(request, { params }) {
       status,
       read_time_minutes: readTime,
       published_at: publishedAt,
+      faq: faq || [],
       updated_at: new Date().toISOString(),
     })
     .eq("id", params.id)

@@ -12,8 +12,18 @@ export default async function AdminDashboard() {
 
   const { data: posts } = await supabaseAdmin
     .from("posts")
-    .select("id, title, slug, status, updated_at")
+    .select("id, title, slug, status, published_at, updated_at")
     .order("created_at", { ascending: false });
+
+  const now = new Date();
+
+  function statusLabel(post) {
+    if (post.status !== "published") return "DRAFT";
+    if (post.published_at && new Date(post.published_at) > now) {
+      return `SCHEDULED — ${new Date(post.published_at).toLocaleString("en-IN")}`;
+    }
+    return "PUBLISHED";
+  }
 
   return (
     <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>
@@ -32,11 +42,12 @@ export default async function AdminDashboard() {
           <div>
             <div style={{ fontWeight: 600 }}>{post.title}</div>
             <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--steel)", marginTop: 4 }}>
-              {post.status.toUpperCase()} · updated {new Date(post.updated_at).toLocaleDateString()}
+              {statusLabel(post)} · updated {new Date(post.updated_at).toLocaleDateString()}
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Link href={`/adminsanjana/edit/${post.id}`} style={linkButtonStyle}>Edit</Link>
+            <Link href={`/adminsanjana/revisions/${post.id}`} style={linkButtonStyle}>History</Link>
             <DeletePostButton postId={post.id} />
           </div>
         </div>

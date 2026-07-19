@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { supabasePublic } from "../../../lib/supabase";
+import Comments from "../../../components/Comments";
 
 export const dynamic = "force-dynamic";
 
@@ -25,11 +26,14 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function PostPage({ params }) {
+  const now = new Date().toISOString();
+
   const { data: post } = await supabasePublic
     .from("posts")
-    .select("*, profiles(display_name), post_tags(tags(name, slug))")
+    .select("*, profiles(id, display_name), post_tags(tags(id, name, slug))")
     .eq("slug", params.slug)
     .eq("status", "published")
+    .lte("published_at", now)
     .single();
 
   if (!post) {
@@ -38,10 +42,70 @@ export default async function PostPage({ params }) {
 
   const tags = post.post_tags?.map((pt) => pt.tags) || [];
   const paragraphs = post.body.split("\n").filter((p) => p.trim());
+  const faqItems = Array.isArray(post.faq) ? post.faq.filter((f) => f.question && f.answer) : [];
+
+  // Related posts: anything sharing at least one tag, excluding this post itself
+  let relatedPosts = [];
+  if (tags.length > 0) {
+    const tagIds = tags.map((t) => t.id);
+    const { data: relatedLinks } = await supabasePublic
+      .from("post_tags")
+      .select("posts(id, title, slug, excerpt, published_at, status)")
+      .in("tag_id", tagIds);
+
+    const seen = new Set([post.id]);
+    relatedPosts = (relatedLinks || [])
+      .map((row) => row.posts)
+      .filter((p) => p && p.status === "published" && !seen.has(p.id) && seen.add(p.id))
+      .slice(0, 3);
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://starter-signal.vercel.app";
+
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    datePublished: post.published_at,
+    dateModified: post.updated_at,
+    author: { "@type": "Person", name: post.profiles?.display_name || "Starter Signal" },
+    image: post.featured_image || undefined,
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: baseUrl },
+      { "@type": "ListItem", position: 2, name: post.title, item: `${baseUrl}/blog/${post.slug}` },
+    ],
+  };
+
+  const faqSchema = faqItems.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map((f) => ({
+      "@type": "Question",
+      name: f.question,
+      acceptedAnswer: { "@type": "Answer", text: f.answer },
+    })),
+  } : null;
 
   return (
     <div className="container" style={{ paddingTop: 40, paddingBottom: 60, maxWidth: 680 }}>
-      <div className="eyebrow">{post.profiles?.display_name || "Starter Signal"}</div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      {faqSchema && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      )}
+
+      <div className="eyebrow">
+        {post.profiles?.id ? (
+          <Link href={`/author/${post.profiles.id}`} style={{ color: "inherit" }}>{post.profiles.display_name}</Link>
+        ) : (
+          "Starter Signal"
+        )}
+      </div>
       <h1 style={{ fontSize: 32, margin: "8px 0 12px" }}>{post.title}</h1>
       <div className="ticket-data" style={{ marginBottom: 24 }}>
         {fmtDate(post.published_at)}
@@ -70,6 +134,18 @@ export default async function PostPage({ params }) {
         </div>
       )}
 
+      {faqItems.length > 0 && (
+        <div style={{ marginTop: 32, paddingTop: 20, borderTop: "1px solid var(--line)" }}>
+          <h2 style={{ fontSize: 22, marginBottom: 16 }}>Frequently asked questions</h2>
+          {faqItems.map((f, i) => (
+            <div key={i} style={{ marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>{f.question}</div>
+              <div style={{ color: "var(--ink-soft)" }}>{f.answer}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {tags.length > 0 && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 32, paddingTop: 20, borderTop: "1px solid var(--line)" }}>
           {tags.map((tag) => (
@@ -77,6 +153,24 @@ export default async function PostPage({ params }) {
           ))}
         </div>
       )}
+
+      {relatedPosts.length > 0 && (
+        <div style={{ marginTop: 40 }}>
+          <h2 style={{ fontSize: 22, marginBottom: 16 }}>Related posts</h2>
+          {relatedPosts.map((rp) => (
+            <Link key={rp.id} href={`/blog/${rp.slug}`} style={{ textDecoration: "none", color: "inherit" }}>
+              <div className="ticket-card">
+                <div className="ticket-body">
+                  <h2 style={{ fontSize: 18 }}>{rp.title}</h2>
+                  {rp.excerpt && <p>{rp.excerpt}</p>}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      <Comments />
     </div>
   );
 }

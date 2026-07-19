@@ -32,7 +32,7 @@ export async function POST(request) {
   }
 
   const body = await request.json();
-  const { title, excerpt, content, featured_image, gallery_images, tags, status } = body;
+  const { title, excerpt, content, featured_image, gallery_images, tags, status, faq, scheduled_at } = body;
 
   if (!title || !content) {
     return NextResponse.json({ error: "Title and body are required" }, { status: 400 });
@@ -56,6 +56,10 @@ export async function POST(request) {
   const wordCount = content.trim().split(/\s+/).length;
   const readTime = Math.max(1, Math.round(wordCount / 200));
 
+  // If a future scheduled_at is provided, use it as published_at — the post
+  // stays hidden from public queries until that moment passes, with no cron job needed.
+  const publishedAt = status === "published" ? (scheduled_at || new Date().toISOString()) : null;
+
   const { data: post, error: postError } = await supabaseAdmin
     .from("posts")
     .insert({
@@ -68,7 +72,8 @@ export async function POST(request) {
       status: status || "draft",
       author_id: authorProfile.id,
       read_time_minutes: readTime,
-      published_at: status === "published" ? new Date().toISOString() : null,
+      published_at: publishedAt,
+      faq: faq || [],
     })
     .select()
     .single();

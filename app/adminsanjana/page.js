@@ -20,7 +20,7 @@ export default async function AdminDashboard() {
   function statusLabel(post) {
     if (post.status !== "published") return "DRAFT";
     if (post.published_at && new Date(post.published_at) > now) {
-      return `SCHEDULED — ${new Date(post.published_at).toLocaleString("en-IN")}`;
+      return `SCHEDULED — ${new Date(post.published_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}`;
     }
     return "PUBLISHED";
   }
@@ -42,7 +42,7 @@ export default async function AdminDashboard() {
           <div>
             <div style={{ fontWeight: 600 }}>{post.title}</div>
             <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--steel)", marginTop: 4 }}>
-              {statusLabel(post)} · updated {new Date(post.updated_at).toLocaleDateString()}
+              {statusLabel(post)} · updated {new Date(post.updated_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

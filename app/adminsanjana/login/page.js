@@ -21,7 +21,8 @@ export default function LoginPage() {
     });
 
     if (!res.ok) {
-      setError("Incorrect password.");
+      const data = await res.json();
+      setError(data.error || "Incorrect password.");
       setLoading(false);
       return;
     }

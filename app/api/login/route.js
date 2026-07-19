@@ -12,7 +12,7 @@ export async function POST(request) {
     .select("id", { count: "exact", head: true })
     .gte("attempted_at", windowStart);
 
-  if (count >= MAX_ATTEMPTS) {
+  if ((count || 0) >= MAX_ATTEMPTS) {
     return NextResponse.json(
       { error: `Too many attempts. Try again in ${WINDOW_MINUTES} minutes.` },
       { status: 429 }

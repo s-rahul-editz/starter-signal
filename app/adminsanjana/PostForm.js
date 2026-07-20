@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
 
 export default function PostForm({ initialPost, postId }) {
   const router = useRouter();
   const [title, setTitle] = useState(initialPost?.title || "");
   const [excerpt, setExcerpt] = useState(initialPost?.excerpt || "");
   const [content, setContent] = useState(initialPost?.body || "");
+  const [previewMode, setPreviewMode] = useState(false);
+  const textareaRef = useRef(null);
   const [featuredImage, setFeaturedImage] = useState(initialPost?.featured_image || "");
   const [galleryText, setGalleryText] = useState((initialPost?.gallery_images || []).join("\n"));
   const [tagsText, setTagsText] = useState((initialPost?.tags || []).join(", "));
@@ -47,6 +50,25 @@ export default function PostForm({ initialPost, postId }) {
       targetSetter(data.url);
     }
     setUploading(false);
+  }
+
+  function wrapSelection(before, after) {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = content.slice(start, end);
+    const newText = content.slice(0, start) + before + selected + after + content.slice(end);
+
+    setContent(newText);
+
+    // Restore focus and cursor position after React re-renders
+    setTimeout(() => {
+      textarea.focus();
+      const cursorPos = start + before.length + selected.length + after.length;
+      textarea.setSelectionRange(cursorPos, cursorPos);
+    }, 0);
   }
 
   function addFaqItem() {
@@ -109,7 +131,38 @@ export default function PostForm({ initialPost, postId }) {
       <input value={excerpt} onChange={(e) => setExcerpt(e.target.value)} style={inputStyle} />
 
       <label style={labelStyle}>Body</label>
-      <textarea value={content} onChange={(e) => setContent(e.target.value)} required rows={12} style={textareaStyle} />
+      <div style={{ display: "flex", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
+        <button type="button" onClick={() => wrapSelection("**", "**")} style={toolBtnStyle}>Bold</button>
+        <button type="button" onClick={() => wrapSelection("*", "*")} style={toolBtnStyle}>Italic</button>
+        <button type="button" onClick={() => wrapSelection("## ", "")} style={toolBtnStyle}>Heading</button>
+        <button type="button" onClick={() => wrapSelection("[", "](https://)")} style={toolBtnStyle}>Link</button>
+        <button type="button" onClick={() => wrapSelection("- ", "")} style={toolBtnStyle}>List</button>
+        <button
+          type="button"
+          onClick={() => setPreviewMode(!previewMode)}
+          style={{ ...toolBtnStyle, marginLeft: "auto", background: previewMode ? "var(--maroon)" : "transparent", color: previewMode ? "var(--paper)" : "var(--ink)" }}
+        >
+          {previewMode ? "Write" : "Preview"}
+        </button>
+      </div>
+
+      {previewMode ? (
+        <div className="textarea-preview" style={{ ...textareaStyle, minHeight: 260, overflow: "auto" }}>
+          <ReactMarkdown>{content || "*Nothing to preview yet.*"}</ReactMarkdown>
+        </div>
+      ) : (
+        <textarea
+          ref={textareaRef}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          required
+          rows={12}
+          style={textareaStyle}
+        />
+      )}
+      <p style={{ fontSize: 12, color: "var(--steel)", marginTop: 4 }}>
+        Supports Markdown — select text and tap a button above, or type directly (**bold**, *italic*, ## heading).
+      </p>
 
       <label style={labelStyle}>Featured image</label>
       <input value={featuredImage} onChange={(e) => setFeaturedImage(e.target.value)} style={inputStyle} placeholder="Paste a URL, or upload below" />
@@ -185,6 +238,17 @@ const labelStyle = {
   margin: "18px 0 6px",
 };
 
+const toolBtnStyle = {
+  padding: "6px 12px",
+  background: "transparent",
+  border: "1px solid var(--line)",
+  borderRadius: 4,
+  fontFamily: "var(--mono)",
+  fontSize: 12,
+  cursor: "pointer",
+  color: "var(--ink)",
+};
+
 const inputStyle = {
   display: "block",
   width: "100%",
@@ -239,3 +303,4 @@ const removeBtnStyle = {
   fontSize: 11,
   cursor: "pointer",
 };
+          

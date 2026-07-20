@@ -2,11 +2,12 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { supabasePublic } from "../../../lib/supabase";
 import Comments from "../../../components/Comments";
+import ReactMarkdown from "react-markdown";
 
 export const dynamic = "force-dynamic";
 
 function fmtDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(dateStr).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
 }
 
 export async function generateMetadata({ params }) {
@@ -41,7 +42,6 @@ export default async function PostPage({ params }) {
   }
 
   const tags = post.post_tags?.map((pt) => pt.tags) || [];
-  const paragraphs = post.body.split("\n").filter((p) => p.trim());
   const faqItems = Array.isArray(post.faq) ? post.faq.filter((f) => f.question && f.answer) : [];
 
   // Related posts: anything sharing at least one tag, excluding this post itself
@@ -120,10 +120,8 @@ export default async function PostPage({ params }) {
         />
       )}
 
-      <div style={{ fontSize: 17, lineHeight: 1.8 }}>
-        {paragraphs.map((para, i) => (
-          <p key={i} style={{ marginBottom: 18 }}>{para}</p>
-        ))}
+      <div className="post-body" style={{ fontSize: 17, lineHeight: 1.8 }}>
+        <ReactMarkdown>{post.body}</ReactMarkdown>
       </div>
 
       {post.gallery_images?.length > 0 && (
@@ -184,3 +182,4 @@ const tagLinkStyle = {
   padding: "4px 10px",
   textDecoration: "none",
 };
+        
